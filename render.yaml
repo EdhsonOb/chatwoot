@@ -64,7 +64,9 @@ services:
   - type: redis
     name: chatwoot-redis
     plan: starter
-    ipAllowList: ["0.0.0.0/0"]  # abre para los servicios de Render (puedes endurecerlo luego)
+    ipAllowList:
+      - source: 0.0.0.0/0
+        description: open for services (ajústalo luego)
 
 databases:
   - name: chatwoot-postgres
