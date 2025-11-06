@@ -1,0 +1,77 @@
+services:
+  - type: web
+    name: chatwoot-web
+    env: docker
+    dockerfilePath: ./Dockerfile
+    plan: starter   # ↑ evita sleep (importante para webhooks); cámbialo según tu cuenta
+    autoDeploy: true
+    envVars:
+      - key: RAILS_ENV
+        value: production
+      - key: INSTALLATION_ENV
+        value: docker
+      - key: RAILS_LOG_TO_STDOUT
+        value: "true"
+      - key: RAILS_SERVE_STATIC_FILES
+        value: "true"
+      - key: SECRET_KEY_BASE
+        generateValue: true
+      - key: FRONTEND_URL
+        # Render te dará la URL https de este servicio web, p.ej. https://chatwoot-web.onrender.com
+        # Después de la 1ª subida entra y pon aquí esa URL exacta.
+        value: https://TU-DOMINIO-RENDER
+      - key: FORCE_SSL
+        value: "true"
+      - key: DEFAULT_LOCALE
+        value: es
+      - key: ACTIVE_STORAGE_SERVICE
+        value: local
+      - key: REDIS_URL
+        fromService:
+          name: chatwoot-redis
+          property: connectionString
+      - key: DATABASE_URL
+        fromDatabase:
+          name: chatwoot-postgres
+          property: connectionString
+
+    # Chatwoot ya trae el comando, pero en Render conviene fijarlo:
+    startCommand: >
+      bundle exec rails db:migrate && bundle exec rails s -b 0.0.0.0 -p 10000
+    healthCheckPath: /app # Chatwoot responde aquí con 200
+
+  - type: worker
+    name: chatwoot-sidekiq
+    env: docker
+    dockerfilePath: ./Dockerfile
+    plan: starter
+    autoDeploy: true
+    envVars:
+      - key: RAILS_ENV
+        value: production
+      - key: INSTALLATION_ENV
+        value: docker
+      - key: RAILS_LOG_TO_STDOUT
+        value: "true"
+      - key: SECRET_KEY_BASE
+        sync: false   # usa el mismo valor que en chatwoot-web (luego lo pegas manualmente)
+      - key: REDIS_URL
+        fromService:
+          name: chatwoot-redis
+          property: connectionString
+      - key: DATABASE_URL
+        fromDatabase:
+          name: chatwoot-postgres
+          property: connectionString
+    startCommand: >
+      bundle exec sidekiq -q critical -q default -q low
+
+databases:
+  - name: chatwoot-postgres
+    databaseName: chatwoot_production
+    plan: starter
+
+services:
+  - type: redis
+    name: chatwoot-redis
+    plan: starter
