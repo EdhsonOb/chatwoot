@@ -1,0 +1,2 @@
+FROM chatwoot/chatwoot:latest
+CMD ["bash","-lc","bundle exec sidekiq -q critical -q default -q low"]
